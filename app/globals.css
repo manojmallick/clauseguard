@@ -1,0 +1,134 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Inter', 'Inter Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Source Serif 4', 'Georgia', ui-serif, serif;
+  --font-mono: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+
+  /* ClauseGuard Brand Colors */
+  --color-navy: #0B1F3A;
+  --color-navy-dark: #000615;
+  --color-teal: #1FB6A6;
+  --color-teal-light: #72f5e3;
+  --color-teal-dim: #55dbca;
+
+  /* Risk Colors */
+  --color-risk-high: #DC2626;
+  --color-risk-high-bg: #FEF2F2;
+  --color-risk-medium: #D97706;
+  --color-risk-medium-bg: #FFFBEB;
+  --color-risk-low: #16A34A;
+  --color-risk-low-bg: #F0FDF4;
+  --color-risk-abstained: #64748B;
+  --color-risk-abstained-bg: #F8FAFC;
+
+  /* Shadcn token mappings */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  color-scheme: light;
+  --background: #F7F9FC;
+  --foreground: #191C1E;
+  --card: #FFFFFF;
+  --card-foreground: #191C1E;
+  --popover: #FFFFFF;
+  --popover-foreground: #191C1E;
+  --primary: #0B1F3A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1FB6A6;
+  --secondary-foreground: #FFFFFF;
+  --muted: #ECEEF1;
+  --muted-foreground: #44474D;
+  --accent: #F2F4F7;
+  --accent-foreground: #191C1E;
+  --destructive: #DC2626;
+  --border: #C4C6CE;
+  --input: #E0E3E6;
+  --ring: #1FB6A6;
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+  html {
+    @apply bg-background;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+  }
+}
+
+@layer utilities {
+  /* Shimmer animation for loading states */
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(31, 182, 166, 0.08), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Dropzone dashed border */
+  .dropzone-dash {
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='12' ry='12' stroke='%231FB6A6' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+  }
+
+  /* Redline styles for risk report */
+  .redline-del {
+    text-decoration: line-through;
+    background-color: rgba(220, 38, 38, 0.08);
+    color: #DC2626;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  .redline-ins {
+    background-color: rgba(22, 163, 74, 0.08);
+    color: #16A34A;
+    font-weight: 600;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  /* Clause left rail */
+  .clause-rail {
+    width: 6px;
+    flex-shrink: 0;
+  }
+}
