@@ -86,6 +86,7 @@ CREATE TABLE findings (
     confidence         NUMERIC(3,2),
     abstained          BOOLEAN DEFAULT false,
     note               TEXT,                             -- shown on abstained findings
+    prior_exposure     JSONB,                            -- moat: org's past contracts with similar language
     created_at         TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_findings_contract ON findings(contract_id);
