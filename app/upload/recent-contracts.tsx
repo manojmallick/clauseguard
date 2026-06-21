@@ -1,9 +1,7 @@
 import Link from 'next/link'
 import { FileText, FileType, MoreVertical, ArrowRight } from 'lucide-react'
 import { RiskBadge } from '@/components/risk-badge'
-import { contracts } from '@/lib/data'
-
-const recent = contracts.slice(0, 4).reverse()
+import { getContractsOrMock } from '@/lib/queries'
 
 const statusConfig = {
   analyzing: {
@@ -23,7 +21,9 @@ const statusConfig = {
   },
 }
 
-export function RecentContracts() {
+export async function RecentContracts() {
+  const { data } = await getContractsOrMock()
+  const recent = data.slice(0, 4)
   return (
     <section>
       <div className="flex justify-between items-center mb-5">

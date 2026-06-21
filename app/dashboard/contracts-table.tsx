@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, ChevronDown, Check } from 'lucide-react'
 import { RiskBadge } from '@/components/risk-badge'
-import { contracts } from '@/lib/data'
+import type { ContractRow } from '@/lib/data'
 type RiskLevel = 'low' | 'medium' | 'high'
 
 const RISK_OPTIONS: { value: RiskLevel; label: string; dot: string }[] = [
@@ -31,7 +31,7 @@ const STATUS_META: Record<string, { label: string; dot: string; text: string }> 
   pending:   { label: 'Pending',    dot: 'bg-[#CBD5E1]', text: 'text-[#64748B]' },
 }
 
-export function ContractsTable() {
+export function ContractsTable({ contracts }: { contracts: ContractRow[] }) {
   const [selectedRisks, setSelectedRisks] = useState<Set<RiskLevel>>(new Set())
   const [riskDropdownOpen, setRiskDropdownOpen] = useState(false)
   const [typeFilter, setTypeFilter] = useState('All Types')

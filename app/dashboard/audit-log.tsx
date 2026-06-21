@@ -1,5 +1,5 @@
 import { Lock } from 'lucide-react'
-import { auditLog } from '@/lib/data'
+import type { AuditEntry } from '@/lib/data'
 
 const ACTION_STYLES: Record<string, string> = {
   uploaded: 'text-[#1FB6A6] bg-[#1FB6A6]/10 border-[#1FB6A6]/20',
@@ -28,7 +28,8 @@ function formatTimestamp(iso: string): string {
   )
 }
 
-export function AuditLog() {
+export function AuditLog({ entries }: { entries: AuditEntry[] }) {
+  const auditLog = entries
   return (
     <section aria-label="Compliance audit log">
       <div className="flex items-center gap-2 mb-4">

@@ -8,6 +8,8 @@ export const metadata = {
   description: 'Upload a PDF or DOCX contract for instant AI-powered risk assessment.',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function UploadPage() {
   return (
     <>

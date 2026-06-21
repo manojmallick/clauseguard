@@ -31,21 +31,27 @@ function makePool(): Pool {
   });
 }
 
-// Reuse the pool across hot reloads / warm invocations.
-export const pool: Pool = global.__clauseguardPool ?? makePool();
-if (process.env.NODE_ENV !== 'production') global.__clauseguardPool = pool;
+/**
+ * Lazily create + reuse the pool. Importing this module must NOT throw when
+ * DATABASE_URL is unset (so builds and mock-fallback paths work); the error is
+ * raised only when a query actually runs.
+ */
+export function getPool(): Pool {
+  if (!global.__clauseguardPool) global.__clauseguardPool = makePool();
+  return global.__clauseguardPool;
+}
 
 /** Parameterized query helper. Always use $1, $2… placeholders — never string interpolation. */
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params: unknown[] = []
 ): Promise<QueryResult<T>> {
-  return pool.query<T>(text, params as never[]);
+  return getPool().query<T>(text, params as never[]);
 }
 
 /** Run a set of statements inside a single ACID transaction (compliance-critical writes). */
 export async function withTransaction<T>(fn: (q: typeof query) => Promise<T>): Promise<T> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   const scopedQuery = ((text: string, params: unknown[] = []) =>
     client.query(text, params as never[])) as typeof query;
   try {

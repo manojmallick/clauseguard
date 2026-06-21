@@ -1,10 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Download, RefreshCw, ChevronLeft, Flag, FileText } from 'lucide-react'
+import { Download, ChevronLeft, Flag, FileText } from 'lucide-react'
 import { TopNav } from '@/components/top-nav'
 import { Footer } from '@/components/footer'
 import { ClauseCard } from '@/components/clause-card'
-import { contracts, mockReport } from '@/lib/data'
+import { ReanalyzeButton } from '@/components/reanalyze-button'
+import { getReportOrMock } from '@/lib/queries'
+
+export const dynamic = 'force-dynamic'
 
 interface Props {
   params: Promise<{ contractId: string }>
@@ -12,11 +15,9 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { contractId } = await params
-  const contract = contracts.find((c) => c.id === contractId)
+  const { data } = await getReportOrMock(contractId)
   return {
-    title: contract
-      ? `Risk Report: ${contract.filename} | ClauseGuard`
-      : 'Risk Report | ClauseGuard',
+    title: data ? `Risk Report: ${data.filename} | ClauseGuard` : 'Risk Report | ClauseGuard',
   }
 }
 
@@ -29,12 +30,10 @@ const overallBannerConfig = {
 
 export default async function ReportPage({ params }: Props) {
   const { contractId } = await params
-  const contract = contracts.find((c) => c.id === contractId)
-  if (!contract) notFound()
+  const { data: report } = await getReportOrMock(contractId)
+  if (!report) notFound()
 
-  // In production, swap mockReport for a real fetch: GET /api/report?contractId=…
-  const report = mockReport
-  const overall = contract.overallRisk
+  const overall = report.overallRisk
   const banner = overall ? overallBannerConfig[overall] : null
   const { high, medium, low, abstained: abstainedCount } = report.counts
   // Sort: high → medium → low → abstained
@@ -79,11 +78,11 @@ export default async function ReportPage({ params }: Props) {
                     )}
                     <span className="flex items-center gap-1.5 bg-[#ECEEF1] text-[#44474D] text-xs font-semibold px-2.5 py-1 rounded-lg">
                       <FileText className="w-3.5 h-3.5" />
-                      {contract.contractType}
+                      {report.contractType}
                     </span>
                   </div>
                   <h1 className="font-serif text-2xl font-bold text-[#000615] leading-snug break-words">
-                    {contract.filename}
+                    {report.filename}
                   </h1>
                   {/* Count pills */}
                   <div className="flex flex-wrap gap-2">
@@ -117,10 +116,7 @@ export default async function ReportPage({ params }: Props) {
                     <Download className="w-4 h-4" />
                     Download report
                   </button>
-                  <button className="flex items-center gap-2 bg-[#0B1F3A] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:brightness-125 transition-all active:scale-95 shadow-md">
-                    <RefreshCw className="w-4 h-4" />
-                    Re-analyze
-                  </button>
+                  <ReanalyzeButton contractId={report.contractId} />
                 </div>
               </div>
             </div>
