@@ -1,19 +1,14 @@
 // Seed the clause_library (with Bedrock embeddings) + a demo org/users.
 // Usage: node --env-file=.env.local scripts/seed.mjs
-import pg from 'pg';
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 import { CLAUSE_PATTERNS } from '../db/clause-patterns.mjs';
+import { createPool } from './db.mjs';
 
 const EMBED_MODEL_ID = process.env.BEDROCK_EMBED_MODEL_ID ?? 'amazon.titan-embed-text-v2:0';
 const EMBED_DIM = Number(process.env.EMBED_DIM ?? 1024);
-
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL not set. Copy .env.example to .env.local and fill it in.');
-  process.exit(1);
-}
 
 const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
 
@@ -32,12 +27,9 @@ async function embed(text) {
 
 const toVector = (arr) => `[${arr.join(',')}]`;
 
-const ssl = process.env.PGSSLMODE === 'disable' ? undefined : { rejectUnauthorized: false };
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl });
+const client = createPool();
 
 try {
-  await client.connect();
-
   // ── Demo org + users (matches the dashboard's people) ──
   const { rows: orgRows } = await client.query(
     `INSERT INTO organizations (name, plan, seats) VALUES ($1,'team',5) RETURNING id`,

@@ -1,9 +1,16 @@
 // ─────────────────────────────────────────────────────────────
 // Aurora PostgreSQL connection (pgvector-enabled).
-// A single pooled client is reused across hot Lambda/Function invocations.
-// Works against Aurora Serverless v2 in prod; any Postgres+pgvector in dev.
+// Two auth modes, auto-detected:
+//   1. IAM/OIDC  — Vercel Aurora Marketplace integration. No static password:
+//      the DB password is a short-lived RDS IAM auth token signed via the
+//      project's Vercel OIDC federation. Env: PGHOST/PGPORT/PGUSER/PGDATABASE/
+//      AWS_REGION/AWS_ROLE_ARN. (This is the hackathon-rewarded, credential-less path.)
+//   2. DATABASE_URL — a plain connection string (local Postgres / generic).
+// A single pooled client is reused across hot Function invocations.
 // ─────────────────────────────────────────────────────────────
 import { Pool, type QueryResult, type QueryResultRow } from 'pg';
+import { Signer } from '@aws-sdk/rds-signer';
+import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -11,17 +18,41 @@ declare global {
 }
 
 function makePool(): Pool {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is not set. Copy .env.example to .env.local and fill it in.');
+  // ── Mode 1: IAM/OIDC (Vercel Aurora integration) ──
+  const host = process.env.PGHOST;
+  const roleArn = process.env.AWS_ROLE_ARN;
+  const user = process.env.PGUSER;
+  if (host && roleArn && user) {
+    const port = Number(process.env.PGPORT ?? 5432);
+    const region = process.env.AWS_REGION;
+    const signer = new Signer({
+      hostname: host,
+      port,
+      username: user,
+      region,
+      credentials: awsCredentialsProvider({ roleArn, clientConfig: { region } }),
+    });
+    return new Pool({
+      host,
+      port,
+      user,
+      database: process.env.PGDATABASE || 'postgres',
+      password: () => signer.getAuthToken(), // fresh IAM token per connection
+      ssl: { rejectUnauthorized: false },
+      max: 5,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 15_000,
+    });
   }
 
-  // Aurora terminates TLS with the AWS RDS CA. We require TLS but don't pin the
-  // CA here (rejectUnauthorized:false) to keep local + serverless setup simple.
-  // Set PGSSLMODE=disable for a plain local Postgres.
-  const ssl =
-    process.env.PGSSLMODE === 'disable' ? undefined : { rejectUnauthorized: false };
-
+  // ── Mode 2: DATABASE_URL ──
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      'No database configured. Connect the Vercel Aurora integration (PGHOST/AWS_ROLE_ARN) or set DATABASE_URL in .env.local.'
+    );
+  }
+  const ssl = process.env.PGSSLMODE === 'disable' ? undefined : { rejectUnauthorized: false };
   return new Pool({
     connectionString,
     ssl,
