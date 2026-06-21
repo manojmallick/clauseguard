@@ -7,7 +7,11 @@ import {
   InvokeModelCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 
-const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
+// Bedrock region can differ from the Aurora region (AWS_REGION). Use BEDROCK_REGION
+// when set (e.g. an EU region where model access is granted).
+const bedrock = new BedrockRuntimeClient({
+  region: process.env.BEDROCK_REGION ?? process.env.AWS_REGION,
+});
 const EMBED_MODEL_ID = process.env.BEDROCK_EMBED_MODEL_ID ?? 'amazon.titan-embed-text-v2:0';
 const EMBED_DIM = Number(process.env.EMBED_DIM ?? 1024);
 

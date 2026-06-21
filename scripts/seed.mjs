@@ -10,7 +10,9 @@ import { createPool } from './db.mjs';
 const EMBED_MODEL_ID = process.env.BEDROCK_EMBED_MODEL_ID ?? 'amazon.titan-embed-text-v2:0';
 const EMBED_DIM = Number(process.env.EMBED_DIM ?? 1024);
 
-const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
+const bedrock = new BedrockRuntimeClient({
+  region: process.env.BEDROCK_REGION ?? process.env.AWS_REGION,
+});
 
 async function embed(text) {
   const res = await bedrock.send(

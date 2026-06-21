@@ -14,7 +14,9 @@ import {
   InvokeModelCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 
-const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
+const bedrock = new BedrockRuntimeClient({
+  region: process.env.BEDROCK_REGION ?? process.env.AWS_REGION,
+});
 const LLM_MODEL_ID = process.env.BEDROCK_LLM_MODEL_ID ?? 'anthropic.claude-sonnet-4-6';
 const DISTANCE_FLOOR = Number(process.env.RAG_DISTANCE_FLOOR ?? 0.55);
 const PRIOR_EXPOSURE_MAX = Number(process.env.RAG_PRIOR_EXPOSURE_MAX ?? 0.45);
