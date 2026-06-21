@@ -86,7 +86,7 @@ export function RecentContracts() {
                     </td>
                     <td className="py-4 px-5">
                       <span className="px-2.5 py-0.5 bg-[#ECEEF1] text-[#0B1F3A] rounded-full text-xs font-semibold">
-                        {contract.type}
+                        {contract.contractType}
                       </span>
                     </td>
                     <td className="py-4 px-5">
@@ -96,7 +96,7 @@ export function RecentContracts() {
                           <span className="text-xs italic">Calculating…</span>
                         </div>
                       ) : (
-                        <RiskBadge level={contract.riskLevel} />
+                        <RiskBadge level={contract.overallRisk ?? 'low'} />
                       )}
                     </td>
                     <td className="py-4 px-5 text-sm text-[#44474D]">{contract.uploadedAt}</td>

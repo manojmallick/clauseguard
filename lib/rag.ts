@@ -52,9 +52,10 @@ interface LibRow {
 export async function analyzeClause(
   clauseText: string,
   orgId: string,
-  currentContractId?: string
+  currentContractId?: string,
+  precomputedVector?: string // pgvector literal, e.g. embedding::text from upload
 ): Promise<RagFinding> {
-  const vec = toVector(await generateEmbedding(clauseText));
+  const vec = precomputedVector ?? toVector(await generateEmbedding(clauseText));
 
   // RETRIEVE #1 — top-3 curated risky patterns (grounding knowledge base)
   const lib = await query<LibRow>(
