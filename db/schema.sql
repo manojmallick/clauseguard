@@ -87,6 +87,7 @@ CREATE TABLE findings (
     abstained          BOOLEAN DEFAULT false,
     note               TEXT,                             -- shown on abstained findings
     prior_exposure     JSONB,                            -- moat: org's past contracts with similar language
+    retrieval_distance NUMERIC(6,4),                     -- cosine distance to nearest pattern (calibration)
     created_at         TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_findings_contract ON findings(contract_id);

@@ -79,6 +79,7 @@ CREATE TABLE findings (
     abstained          BOOLEAN DEFAULT false,
     note               TEXT,
     prior_exposure     JSONB,
+    retrieval_distance NUMERIC(6,4),
     created_at         TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX idx_findings_contract ON findings(contract_id);

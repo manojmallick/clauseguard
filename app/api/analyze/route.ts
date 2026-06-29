@@ -39,8 +39,9 @@ export async function POST(req: NextRequest) {
       await query(
         `INSERT INTO findings
            (contract_id, clause_id, matched_pattern, risk_level, explanation,
-            redline_suggestion, grounded_on, confidence, abstained, note, prior_exposure)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+            redline_suggestion, grounded_on, confidence, abstained, note, prior_exposure,
+            retrieval_distance)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
         [
           contractId,
           clause.id,
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
           a.abstained ?? false,
           a.note ?? null,
           a.priorExposure ? JSON.stringify(a.priorExposure) : null,
+          a.retrievalDistance ?? null,
         ]
       );
 

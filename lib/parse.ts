@@ -50,7 +50,7 @@ export function splitClauses(raw: string): ExtractedClause[] {
   const text = raw.replace(/\r\n/g, '\n').replace(/ /g, ' ');
   const lines = text.split('\n');
 
-  const blocks: string[] = [];
+  let blocks: string[] = [];
   let current = '';
   let sawNumbering = false;
 
@@ -64,6 +64,10 @@ export function splitClauses(raw: string): ExtractedClause[] {
     }
   }
   if (current.trim()) blocks.push(current.trim());
+
+  // When the doc is numbered, keep only blocks that actually start with a clause
+  // number — this drops the title/preamble that precedes the first numbered clause.
+  if (sawNumbering) blocks = blocks.filter((b) => CLAUSE_START.test(b));
 
   // Fallback: no numbering detected -> split on blank-line paragraphs.
   let candidates = sawNumbering

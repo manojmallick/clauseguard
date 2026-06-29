@@ -18,6 +18,7 @@ export interface Finding {
   groundedOnPattern?: string // e.g. "Unlimited liability"
   confidence?: number // 0..1  -> render as %
   priorExposure?: Array<{ contractId: string; filename: string; date: string }>
+  retrievalDistance?: number // cosine distance to nearest pattern (calibration insight)
 }
 
 export interface ContractReport {

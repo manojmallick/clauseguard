@@ -43,6 +43,7 @@ interface JoinedRow {
   abstained: boolean | null;
   note: string | null;
   prior_exposure: Finding['priorExposure'] | null;
+  retrieval_distance: string | null;
 }
 
 /** Assemble a full ContractReport for the UI from stored clauses + findings. */
@@ -56,7 +57,7 @@ export async function assembleReport(contractId: string): Promise<ContractReport
   const rows = await query<JoinedRow>(
     `SELECT c.id AS clause_id, c.clause_number, c.clause_text, c.clause_type,
             f.risk_level, f.explanation, f.redline_suggestion, f.grounded_on,
-            f.confidence, f.abstained, f.note, f.prior_exposure
+            f.confidence, f.abstained, f.note, f.prior_exposure, f.retrieval_distance
      FROM clauses c
      LEFT JOIN findings f ON f.clause_id = c.id
      WHERE c.contract_id = $1
@@ -78,6 +79,7 @@ export async function assembleReport(contractId: string): Promise<ContractReport
     groundedOnPattern: r.grounded_on ?? undefined,
     confidence: r.confidence != null ? Number(r.confidence) : undefined,
     priorExposure: r.prior_exposure ?? undefined,
+    retrievalDistance: r.retrieval_distance != null ? Number(r.retrieval_distance) : undefined,
   }));
 
   const counts = computeCounts(findings);
