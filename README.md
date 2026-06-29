@@ -3,8 +3,20 @@
 **The legal contract review small businesses can't afford.** Upload any contract and get every
 risky clause flagged, explained in plain English, and rewritten with safer language — in ~30 seconds.
 
+[![Live](https://img.shields.io/badge/▶_Live_Demo-clauseguard.vercel.app-1FB6A6?style=for-the-badge&logo=vercel&logoColor=white)](https://clauseguard.vercel.app)
+&nbsp;[![Deck](https://img.shields.io/badge/Pitch-DECK.pdf-EF4444?style=for-the-badge&logo=adobeacrobatreader&logoColor=white)](./DECK.pdf)
+
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Aurora PostgreSQL](https://img.shields.io/badge/Aurora_PostgreSQL-527FFF?style=flat-square&logo=amazonrds&logoColor=white)
+![pgvector](https://img.shields.io/badge/pgvector-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Amazon Bedrock](https://img.shields.io/badge/Amazon_Bedrock-232F3E?style=flat-square&logo=amazonaws&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
+
 > AWS × Vercel Hackathon · **Track 2 (Monetizable B2B)** · Amazon Aurora PostgreSQL + pgvector RAG,
 > grounded on Amazon Bedrock (Claude). Flagship submission — target: **Best Technical Implementation**.
+
+> 🟢 **Live:** https://clauseguard.vercel.app &nbsp;·&nbsp; 📊 **Pitch deck:** [DECK.pdf](./DECK.pdf)
 
 ---
 
