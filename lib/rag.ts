@@ -99,8 +99,16 @@ export async function analyzeClause(
     [vec, orgId, currentContractId ?? null]
   );
 
+  // Dedupe to DISTINCT past contracts (a single contract can have several near
+  // clauses) — keep the closest match per contract, take the top 3 contracts.
+  const seenContracts = new Set<string>();
   const priorExposure: PriorExposure[] = priors.rows
     .filter((p) => Number(p.distance) < PRIOR_EXPOSURE_MAX)
+    .filter((p) => {
+      if (seenContracts.has(p.contract_id)) return false;
+      seenContracts.add(p.contract_id);
+      return true;
+    })
     .slice(0, 3)
     .map((p) => ({
       contractId: p.contract_id,
@@ -149,6 +157,10 @@ Return STRICT JSON only (no markdown), with this exact shape:
       ? out.groundedOnPattern
       : nearest.pattern_name;
 
+  // The moat is meaningful only for risky clauses ("you accepted this RISKY
+  // language before") — don't surface prior exposure on benign findings.
+  const isRisky = out.riskLevel === 'high' || out.riskLevel === 'medium';
+
   return {
     isRisk: out.isRisk ?? true,
     riskLevel: out.riskLevel,
@@ -157,7 +169,7 @@ Return STRICT JSON only (no markdown), with this exact shape:
     groundedOnPattern: grounded,
     matchedPatternId: nearest.id,
     confidence: clamp01(out.confidence ?? 1 - Number(nearest.distance)),
-    priorExposure: priorExposure.length ? priorExposure : undefined,
+    priorExposure: isRisky && priorExposure.length ? priorExposure : undefined,
     retrievalDistance: Number(nearest.distance),
   };
 }
