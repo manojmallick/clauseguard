@@ -21,6 +21,10 @@ const LLM_MODEL_ID = process.env.BEDROCK_LLM_MODEL_ID ?? 'anthropic.claude-sonne
 const DISTANCE_FLOOR = Number(process.env.RAG_DISTANCE_FLOOR ?? 0.55);
 const PRIOR_EXPOSURE_MAX = Number(process.env.RAG_PRIOR_EXPOSURE_MAX ?? 0.45);
 
+// Bedrock-first; fall back to OpenAI when AI_PROVIDER=openai (e.g. awaiting Bedrock quota).
+const AI_PROVIDER = process.env.AI_PROVIDER ?? 'bedrock';
+const OPENAI_LLM_MODEL = process.env.OPENAI_LLM_MODEL ?? 'gpt-4o-mini';
+
 export interface PriorExposure {
   contractId: string;
   filename: string;
@@ -134,7 +138,7 @@ Return STRICT JSON only (no markdown), with this exact shape:
   "confidence": number between 0 and 1
 }`;
 
-  const out = await invokeClaude(prompt);
+  const out = await invokeLLM(prompt);
 
   return {
     isRisk: out.isRisk ?? true,
@@ -158,8 +162,13 @@ interface ClaudeFinding {
   confidence?: number;
 }
 
-/** Invoke Claude on Bedrock and parse its JSON reply (tolerant of code fences). */
-async function invokeClaude(prompt: string): Promise<ClaudeFinding> {
+/** Invoke the grounded LLM (Bedrock Claude, or OpenAI fallback) and parse its JSON reply. */
+async function invokeLLM(prompt: string): Promise<ClaudeFinding> {
+  const text = AI_PROVIDER === 'openai' ? await invokeOpenAI(prompt) : await invokeClaude(prompt);
+  return parseJsonLoose(text);
+}
+
+async function invokeClaude(prompt: string): Promise<string> {
   const res = await bedrock.send(
     new InvokeModelCommand({
       modelId: LLM_MODEL_ID,
@@ -173,11 +182,28 @@ async function invokeClaude(prompt: string): Promise<ClaudeFinding> {
       }),
     })
   );
-  const envelope = JSON.parse(new TextDecoder().decode(res.body)) as {
-    content: { text: string }[];
-  };
-  const text = envelope.content?.[0]?.text ?? '{}';
-  return parseJsonLoose(text);
+  const envelope = JSON.parse(new TextDecoder().decode(res.body)) as { content: { text: string }[] };
+  return envelope.content?.[0]?.text ?? '{}';
+}
+
+async function invokeOpenAI(prompt: string): Promise<string> {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_LLM_MODEL,
+      temperature: 0,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`OpenAI chat ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as { choices: { message: { content: string } }[] };
+  return json.choices[0]?.message?.content ?? '{}';
 }
 
 function parseJsonLoose(text: string): ClaudeFinding {
