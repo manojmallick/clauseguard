@@ -21,9 +21,10 @@ const LLM_MODEL_ID = process.env.BEDROCK_LLM_MODEL_ID ?? 'anthropic.claude-sonne
 const DISTANCE_FLOOR = Number(process.env.RAG_DISTANCE_FLOOR ?? 0.55);
 const PRIOR_EXPOSURE_MAX = Number(process.env.RAG_PRIOR_EXPOSURE_MAX ?? 0.45);
 
-// Bedrock-first; fall back to OpenAI when AI_PROVIDER=openai (e.g. awaiting Bedrock quota).
+// Bedrock-first; fall back to OpenAI or Gemini (e.g. awaiting Bedrock quota).
 const AI_PROVIDER = process.env.AI_PROVIDER ?? 'bedrock';
 const OPENAI_LLM_MODEL = process.env.OPENAI_LLM_MODEL ?? 'gpt-4o-mini';
+const GEMINI_LLM_MODEL = process.env.GEMINI_LLM_MODEL ?? 'gemini-2.5-flash';
 
 export interface PriorExposure {
   contractId: string;
@@ -162,10 +163,34 @@ interface ClaudeFinding {
   confidence?: number;
 }
 
-/** Invoke the grounded LLM (Bedrock Claude, or OpenAI fallback) and parse its JSON reply. */
+/** Invoke the grounded LLM (Bedrock Claude, or OpenAI/Gemini fallback) and parse its JSON reply. */
 async function invokeLLM(prompt: string): Promise<ClaudeFinding> {
-  const text = AI_PROVIDER === 'openai' ? await invokeOpenAI(prompt) : await invokeClaude(prompt);
+  const text =
+    AI_PROVIDER === 'openai'
+      ? await invokeOpenAI(prompt)
+      : AI_PROVIDER === 'gemini'
+        ? await invokeGemini(prompt)
+        : await invokeClaude(prompt);
   return parseJsonLoose(text);
+}
+
+async function invokeGemini(prompt: string): Promise<string> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_LLM_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`Gemini chat ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+  return json.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
 }
 
 async function invokeClaude(prompt: string): Promise<string> {

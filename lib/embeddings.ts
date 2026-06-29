@@ -19,14 +19,39 @@ const bedrock = new BedrockRuntimeClient({
 });
 const EMBED_MODEL_ID = process.env.BEDROCK_EMBED_MODEL_ID ?? 'amazon.titan-embed-text-v2:0';
 const OPENAI_EMBED_MODEL = process.env.OPENAI_EMBED_MODEL ?? 'text-embedding-3-small';
+const GEMINI_EMBED_MODEL = process.env.GEMINI_EMBED_MODEL ?? 'gemini-embedding-001';
 
 /** Embed a single piece of text into a vector of length EMBED_DIM. */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const vec = AI_PROVIDER === 'openai' ? await openaiEmbed(text) : await bedrockEmbed(text);
+  const vec =
+    AI_PROVIDER === 'openai'
+      ? await openaiEmbed(text)
+      : AI_PROVIDER === 'gemini'
+        ? await geminiEmbed(text)
+        : await bedrockEmbed(text);
   if (vec.length !== EMBED_DIM) {
     throw new Error(`Embedding dim mismatch: got ${vec.length}, expected ${EMBED_DIM}`);
   }
   return vec;
+}
+
+// Gemini's gemini-embedding-001 supports outputDimensionality, so we get EMBED_DIM (1024)
+// vectors compatible with pgvector(1024).
+async function geminiEmbed(text: string): Promise<number[]> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_EMBED_MODEL}:embedContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: { parts: [{ text: text.slice(0, 8000) }] },
+        outputDimensionality: EMBED_DIM,
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`Gemini embeddings ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as { embedding: { values: number[] } };
+  return json.embedding.values;
 }
 
 async function bedrockEmbed(text: string): Promise<number[]> {
