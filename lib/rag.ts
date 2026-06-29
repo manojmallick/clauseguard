@@ -112,18 +112,20 @@ export async function analyzeClause(
       }),
     }));
 
-  // GENERATE — ground Claude on retrieved patterns + the ACTUAL wording.
+  // GENERATE — ground the model on retrieved patterns + the ACTUAL wording.
+  // Patterns are listed by NAME (no "[Pattern N]" labels the model might echo back).
   const grounding = lib.rows
     .map(
-      (r, i) =>
-        `[Pattern ${i + 1}] ${r.pattern_name} (risk: ${r.risk_level})\n` +
+      (r) =>
+        `Pattern "${r.pattern_name}" (typical risk: ${r.risk_level})\n` +
         `Why risky: ${r.explanation}\nSafer baseline: ${r.safer_version}`
     )
     .join('\n\n');
+  const patternNames = lib.rows.map((r) => r.pattern_name);
 
-  const prompt = `You are a contract-risk analyst for small businesses. Use ONLY the retrieved patterns below as grounding. Do not invent risks not supported by them. If the clause is genuinely benign, say so with low risk.
+  const prompt = `You are a contract-risk analyst for small businesses. Use ONLY the retrieved known-risky patterns below as grounding. Do not invent risks not supported by them. If the clause genuinely matches a risky pattern, score its severity honestly — do not understate it (e.g. unlimited/uncapped liability, indemnifying the other side for their own negligence, or assigning away pre-existing IP are HIGH risk). If the clause is genuinely benign, say so with low risk.
 
-RETRIEVED PATTERNS:
+RETRIEVED KNOWN-RISKY PATTERNS:
 ${grounding}
 
 CLAUSE UNDER REVIEW:
@@ -134,19 +136,25 @@ Return STRICT JSON only (no markdown), with this exact shape:
   "isRisk": boolean,
   "riskLevel": "low" | "medium" | "high",
   "explanation": "plain-English, specific to THIS clause's wording, 1-3 sentences",
-  "redline": "the clause rewritten safer. Mark the risky text to remove with <del>...</del> and the safer replacement with <ins>...</ins>, inline, keeping the unchanged parts as-is",
-  "groundedOnPattern": "the exact pattern_name you relied on",
+  "redline": "the clause rewritten safer. You MUST mark the risky text to remove with <del>...</del> and the safer replacement with <ins>...</ins>, inline, keeping unchanged parts as-is",
+  "groundedOnPattern": "copy the exact pattern name string you relied on, from: ${patternNames.map((n) => `"${n}"`).join(', ')}",
   "confidence": number between 0 and 1
 }`;
 
   const out = await invokeLLM(prompt);
+
+  // Validate the model's grounded-on against the real retrieved names; never surface a placeholder.
+  const grounded =
+    out.groundedOnPattern && patternNames.includes(out.groundedOnPattern)
+      ? out.groundedOnPattern
+      : nearest.pattern_name;
 
   return {
     isRisk: out.isRisk ?? true,
     riskLevel: out.riskLevel,
     explanation: out.explanation,
     redline: out.redline,
-    groundedOnPattern: out.groundedOnPattern ?? nearest.pattern_name,
+    groundedOnPattern: grounded,
     matchedPatternId: nearest.id,
     confidence: clamp01(out.confidence ?? 1 - Number(nearest.distance)),
     priorExposure: priorExposure.length ? priorExposure : undefined,
