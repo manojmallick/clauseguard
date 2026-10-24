@@ -125,6 +125,61 @@ Upload a contract on `/upload` → it parses, embeds, runs the RAG pipeline, and
 
 ---
 
+## Environment variables
+
+Copy `.env.example` to `.env.local`.
+
+| Variable | Description |
+|---|---|
+| `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`, `AWS_ROLE_ARN` | Aurora connection with password-less IAM auth through Vercel OIDC (preferred; injected by the Vercel Aurora integration, `vercel env pull .env.local` brings them down) |
+| `DATABASE_URL`, `PGSSLMODE` | Fallback: a plain Postgres connection string; `PGSSLMODE=disable` for a local non-TLS database |
+| `AI_PROVIDER` | `bedrock` (default), or `openai` / `gemini` as a fallback while waiting for Bedrock quota |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | Bedrock access. On Vercel an OIDC role can replace the keys. `BEDROCK_REGION` overrides the region if model access is elsewhere |
+| `BEDROCK_LLM_MODEL_ID`, `BEDROCK_EMBED_MODEL_ID` | Models used when `AI_PROVIDER=bedrock` (Claude Sonnet and Titan Text Embeddings v2) |
+| `OPENAI_API_KEY`, `OPENAI_EMBED_MODEL`, `OPENAI_LLM_MODEL` | Used when `AI_PROVIDER=openai` |
+| `GEMINI_API_KEY`, `GEMINI_EMBED_MODEL`, `GEMINI_LLM_MODEL` | Used when `AI_PROVIDER=gemini` |
+| `EMBED_DIM` | Embedding size, `1024`. Must match `vector(N)` in `db/schema.sql`, for every provider |
+| `RAG_DISTANCE_FLOOR` | Default `0.55`. Beyond this cosine distance to the clause library, the system abstains and flags the clause for human review |
+| `RAG_PRIOR_EXPOSURE_MAX` | Default `0.45`. Closer than this to a clause in the organisation's history means "you accepted similar language before" |
+| `ORG_ID` | Optional. Pins a tenant; `pnpm db:seed` prints the demo org id |
+| `SETUP_SECRET` | Only for the admin setup route below (not listed in `.env.example`) |
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `pnpm dev` | Dev server on `http://localhost:3000` |
+| `pnpm build` / `pnpm start` | Production build and server |
+| `pnpm lint` | ESLint |
+| `pnpm db:schema` | Apply `db/schema.sql` (tables and pgvector indexes) |
+| `pnpm db:seed` | Embed the 30 clause patterns and seed a demo org and users |
+| `pnpm db:reset` | `db:schema` then `db:seed` |
+| `node --env-file=.env.local scripts/preflight.mjs` | Check database connectivity, pgvector and a real embedding call before seeding |
+
+## Setting up the database from Vercel
+
+Aurora can be private to Vercel's network, so `/api/admin/setup` runs the setup from inside a deployment. It is guarded by the `SETUP_SECRET` environment variable and is safe to call repeatedly:
+
+```bash
+curl -X POST "$URL/api/admin/setup?reset=1" -H "x-setup-secret: $SETUP_SECRET"   # first run: drops and recreates the schema
+curl -X POST "$URL/api/admin/setup"          -H "x-setup-secret: $SETUP_SECRET"   # continue seeding if the first call timed out or Bedrock throttled
+```
+
+`?reset=1` **drops the schema**, so use it only on a fresh or disposable database.
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| "Demo data" badge in the UI | `DATABASE_URL` (or the Aurora variables) and the AI provider are not configured yet |
+| Vector dimension errors | `EMBED_DIM` and `vector(N)` in `db/schema.sql` differ; re-run `pnpm db:schema` after changing it |
+| Bedrock `AccessDenied` or throttling | Model access not granted in the region, or quota hit; set `AI_PROVIDER=openai` or `gemini`, or call the setup route again to resume |
+| Many clauses show "needs human review" | They are farther than `RAG_DISTANCE_FLOOR` from the clause library; raise it to be more permissive |
+
+More: [docs/DEMO.md](docs/DEMO.md) (demo script).
+
+---
+
 ## API
 
 | Route | Method | Purpose |
